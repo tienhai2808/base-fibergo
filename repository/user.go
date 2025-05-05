@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -69,6 +70,14 @@ func (r *userRepository) CreateUser(user *model.User) error {
 	now := time.Now()
 	user.CreatedAt = now
 	user.UpdatedAt = now
-	_, err := r.db.GetCollection("users").InsertOne(ctx, user)
-	return err
+	result, err := r.db.GetCollection("users").InsertOne(ctx, user)
+	if err != nil {
+		return err
+	}
+
+	if oid, ok := result.InsertedID.(primitive.ObjectID); ok {
+		user.ID = oid
+	}
+
+	return nil
 }

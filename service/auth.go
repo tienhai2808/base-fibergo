@@ -35,18 +35,18 @@ func (s *AuthService) Login(req *request.LoginRequest) (*model.User, error) {
 	return user, nil
 }
 
-func (s *AuthService) Register(req *request.RegisterRequest) (*model.User, error) {
+func (s *AuthService) Register(req *request.RegisterRequest) (*model.User, string, error) {
 	exists, err := s.repo.ExistsByUsernameOrEmail(req.Username, req.Email)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	if exists {
-		return nil, errors.New("username hoặc Email đã tồn tại")
+		return nil, "", errors.New("username hoặc Email đã tồn tại")
 	}
 
 	hashedPassword, err := security.HashPassword(req.Password)
 	if err != nil {
-		return nil, errors.New("lỗi hash mật khẩu")
+		return nil, "", errors.New("lỗi hash mật khẩu")
 	}
 
 	newUser := &model.User{
@@ -58,8 +58,13 @@ func (s *AuthService) Register(req *request.RegisterRequest) (*model.User, error
 	}
 
 	if err := s.repo.CreateUser(newUser); err != nil {
-		return nil, err
+		return nil, "", errors.New("lỗi tạo người dùng")
 	}
 
-	return newUser, nil
+	refreshToken, err := security.GenerateToken(newUser.ID.Hex())
+	if err != nil {
+		return nil, "", errors.New("lỗi tạo token")
+	}
+
+	return newUser, refreshToken, nil
 }
