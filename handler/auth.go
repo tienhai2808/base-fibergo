@@ -23,6 +23,7 @@ func NewAuthHandler(svc *service.AuthService) *AuthHandler {
 func (h *AuthHandler) Test(c fiber.Ctx) error {
 	tokenStr := c.Cookies("refresh_token")
 	fmt.Println(tokenStr)
+	fmt.Println(c.Request())
 	req := new(request.TestRequest)
 	if err := common.ValidateBody(c, req); err != nil {
 		if fiberErr, ok := err.(*fiber.Error); ok {
@@ -55,12 +56,22 @@ func (h *AuthHandler) Login(c fiber.Ctx) error {
 		})
 	}
 
-	user, err := h.svc.Login(req)
+	user, refreshToken, err := h.svc.Login(req)
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": err.Error(),
 		})
 	}
+
+	c.Cookie(&fiber.Cookie{
+		Name:     "refresh_token",
+		Value:    refreshToken,
+		Expires:  time.Now().Add(7*24*time.Hour),
+		HTTPOnly: true,  
+		Secure:   false,  
+		SameSite: "Strict",
+		Path:     "/",
+	})
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "Đăng nhập thành công",
@@ -91,15 +102,30 @@ func (h *AuthHandler) Register(c fiber.Ctx) error {
 	c.Cookie(&fiber.Cookie{
 		Name:     "refresh_token",
 		Value:    refreshToken,
-		Expires:  time.Now().Add(1),
+		Expires:  time.Now().Add(7*24*time.Hour),
 		HTTPOnly: true,  
 		Secure:   false,  
-		SameSite: "Lax",
+		SameSite: "Strict",
 		Path:     "/",
 	})
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "Đăng ký thành công",
 		"user":    user,
+	})
+}
+
+func (h *AuthHandler) Logout(c fiber.Ctx) error {
+	c.Cookie(&fiber.Cookie{
+    Name:     "refresh_token",
+    Value:    "",
+    Expires:  time.Now().Add(-1 * time.Hour),
+    HTTPOnly: true,
+    Secure:   false,
+    SameSite: "Strict",
+    Path:     "/",
+})
+	return c.Status(200).JSON(fiber.Map{
+		"message": "Đăng xuất thành công",
 	})
 }

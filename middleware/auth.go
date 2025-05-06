@@ -35,9 +35,7 @@ func AuthRequired() fiber.Handler {
 		}
 
 		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-			// Lấy user_id từ claims
 			if userID, ok := claims["user_id"].(string); ok {
-				// Lưu thông tin user vào context cho các handler sau
 				c.Locals("user_id", userID)
 			} else {
 				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{

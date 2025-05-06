@@ -18,21 +18,26 @@ func NewAuthService(repo repository.UserRepository) *AuthService {
 	}
 }
 
-func (s *AuthService) Login(req *request.LoginRequest) (*model.User, error) {
-	user, err := s.repo.GetUserByUserName(req.Username)
+func (s *AuthService) Login(req *request.LoginRequest) (*model.User, string, error) {
+	user, err := s.repo.GetUserByUsername(req.Username)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	
 	if user == nil {
-		return nil, errors.New("tài khoản không tồn tại")
+		return nil, "", errors.New("người dùng không tồn tại")
+	}
+
+	if err := security.VerifyPassword(user.Password, req.Password); err != nil {
+		return nil, "", errors.New("lỗi xác thực mật khẩu")
+	}
+
+	refreshToken, err := security.GenerateToken(user.ID.Hex())
+	if err != nil {
+		return nil, "", errors.New("lỗi tạo token")
 	}
 	
-	if user.Password != req.Password { 
-		return nil, errors.New("mật khẩu không đúng")
-	}
-	
-	return user, nil
+	return user, refreshToken, nil
 }
 
 func (s *AuthService) Register(req *request.RegisterRequest) (*model.User, string, error) {

@@ -13,7 +13,7 @@ import (
 )
 
 type UserRepository interface {
-	GetUserByUserName(username string) (*model.User, error)
+	GetUserByUsername(username string) (*model.User, error)
 	ExistsByUsernameOrEmail(username, email string) (bool, error)
 	CreateUser(user *model.User) error
 }
@@ -28,7 +28,7 @@ func NewUserRepository(db *database.MongoDB) UserRepository {
 	}
 }
 
-func (r *userRepository) GetUserByUserName(username string) (*model.User, error) {
+func (r *userRepository) GetUserByUsername(username string) (*model.User, error) {
 	var user model.User
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
